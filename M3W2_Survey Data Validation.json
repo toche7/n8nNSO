@@ -1,0 +1,158 @@
+{
+  "name": "M3W2_Survey Data Validation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "survey-data",
+        "options": {}
+      },
+      "id": "c0149088-bfed-4853-acbe-d939a6d404f2",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "b4e4ae46-2de4-4c9e-b213-52e9a69816fa"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              },
+              "id": "23cb6dbd-3ad2-43ea-911d-9e5f28a0d506"
+            },
+            {
+              "leftValue": "={{ $json.body.age }}",
+              "rightValue": "",
+              "operator": {
+                "type": "any",
+                "operation": "exists"
+              },
+              "id": "5d88f052-574e-416c-b688-d9aa7301f03b"
+            },
+            {
+              "id": "5cc48393-d13a-4038-a958-1d3cb382eed1",
+              "leftValue": "={{ $json.body.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b5cd3681-cdf2-4d81-8d9e-45ca7155bf72",
+              "leftValue": "={{ $json.body.feedback }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2bec4198-1373-441f-a6a9-7e42a3a8f956",
+      "name": "Check Valid Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        464,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "fileName": "valid.csv",
+          "headerRow": true
+        }
+      },
+      "id": "f7721dc9-85ae-41be-9c6b-971aa1ffed21",
+      "name": "Export Valid CSV",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "fileName": "invalid.csv",
+          "headerRow": true
+        }
+      },
+      "id": "59390657-0317-42cc-87a5-84690149d4f4",
+      "name": "Export Invalid CSV",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Valid Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Valid Data": {
+      "main": [
+        [
+          {
+            "node": "Export Valid CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Export Invalid CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6c86f8e2-e5d1-4f6c-88c8-f3bf4be96d2a",
+  "meta": {
+    "instanceId": "8c064c168fd7bd400088e18637bfe84846541c53d2c31da7470712b2bb404eed"
+  },
+  "id": "FkUYumLQsGQamxCK",
+  "tags": []
+}
