@@ -1,0 +1,232 @@
+{
+  "name": "M4W2_Household Debt-to-Expense Analysis",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0dd2ffc2-9b83-4625-aa6a-7fa67a712289",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://catalog.nso.go.th/api/3/action/datastore_search?resource_id=697c9b29-d937-4c4e-9d9f-122ff085488b&limit=500&offset=0",
+        "options": {}
+      },
+      "id": "3f62241f-c60e-4ade-9660-9010b8f73ee6",
+      "name": "Fetch Household Expenses",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $input.first().json.result.records;\n\nconst filtered = records.filter(row =>\n  row.type_expenditure1 === 'ค่าใช้จ่ายทั้งสิ้นต่อเดือน' ||\n  row.type_expenditure2 === 'ค่าใช้จ่ายทั้งสิ้นต่อเดือน'\n);\n\nreturn filtered.map(row => ({ json: row }));"
+      },
+      "id": "7ccf2af2-99ae-4891-ad50-6a062a6632e8",
+      "name": "Filter Expenses (รวมทั้งสิ้น)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "province",
+              "field2": "province"
+            },
+            {
+              "field1": "year",
+              "field2": "year"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1a868d41-81db-4598-b6f5-5ffcc979839d",
+      "name": "Merge by Province + Year + Socio-Economic",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://catalog.nso.go.th/api/3/action/datastore_search?resource_id=89cc71ae-f596-4307-b38f-10d61d084801&limit=500&offset=0",
+        "options": {}
+      },
+      "id": "53aebe39-379b-4f28-a7c6-c2eb36b0c352",
+      "name": "Fetch Household Debt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $input.first().json.result.records;\n\nconst filtered = records.filter(row =>\n  row.hhdebt_totaldebt === 'จำนวนหนี้สินเฉลี่ยต่อครัวเรือน' &&\n  row.unit !== 'ครัวเรือน'\n);\n\nreturn filtered.map(row => ({ json: row }));"
+      },
+      "id": "d101d9f2-0ceb-48d1-8097-4ab8894e148d",
+      "name": "Filter Debt (หนี้รวม)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// ใช้สำหรับรวมข้อมูลตาม province + year + soc_eco_class\nconst grouped = {};\n\nitems.forEach(item => {\n  const row = item.json;\n\n  const key = [\n    row.year,\n    row.province,\n    row.soc_eco_class1,\n    row.soc_eco_class2\n  ].join('|');\n\n  if (!grouped[key]) {\n    grouped[key] = {\n      province: row.province,\n      year: row.year,\n      soc_eco: row.soc_eco_class1,\n      soc_eco2: row.soc_eco_class2,\n      total_expense: 0,\n      total_debt: 0\n    };\n  }\n\n  const value = Number(row.value) || 0;\n\n  // ค่าใช้จ่ายรวมต่อเดือน\n  const isTotalExpense =\n    row.type_expenditure1 === 'ค่าใช้จ่ายทั้งสิ้นต่อเดือน' &&\n    row.type_expenditure2 === 'ค่าใช้จ่ายทั้งสิ้นต่อเดือน' &&\n    row.unit === 'บาท';\n\n  // หนี้สินรวมเฉลี่ยต่อครัวเรือน\n  const isTotalDebt =\n    row.hhdebt_totaldebt === 'จำนวนหนี้สินเฉลี่ยต่อครัวเรือน' &&\n    row.hhdebt_totaldebt_purpose_source === 'จำนวนหนี้สินเฉลี่ยต่อครัวเรือน' &&\n    row.purpose_source_bor === 'จำนวนหนี้สินเฉลี่ยต่อครัวเรือน' &&\n    row.unit === 'บาท';\n\n  if (isTotalExpense) {\n    grouped[key].total_expense = value;\n  }\n\n  if (isTotalDebt) {\n    grouped[key].total_debt = value;\n  }\n});\n\n// แปลง object เป็น array\nconst analyzed = Object.values(grouped)\n  .map(row => {\n    const monthlyDebt = row.total_debt / 12;\n    const debtToExpensePct =\n      row.total_expense > 0\n        ? (monthlyDebt / row.total_expense) * 100\n        : 0;\n\n    return {\n      province: row.province,\n      year: row.year,\n      soc_eco: row.soc_eco,\n      soc_eco2: row.soc_eco2,\n      total_expense: row.total_expense,\n      total_debt: row.total_debt,\n      debt_to_expense_pct: Number(debtToExpensePct.toFixed(2))\n    };\n  })\n  // เอาเฉพาะรายการที่มีทั้ง expense และ debt\n  .filter(row => row.total_expense > 0 || row.total_debt > 0);\n\n// Sort by debt_to_expense_pct มากไปน้อย\nanalyzed.sort((a, b) => b.debt_to_expense_pct - a.debt_to_expense_pct);\n\n// Top 5 and Bottom 5\nconst top5 = analyzed.slice(0, 5);\nconst bottom5 = analyzed.slice(-5).reverse();\n\n// Format email report\nlet report = '# Household Debt-to-Expense Analysis Report\\n\\n';\n\nreport += '## Top 5 Provinces with Highest Debt Burden\\n\\n';\ntop5.forEach((item, idx) => {\n  report += `${idx + 1}. ${item.province} (${item.year}) - ${item.soc_eco2}\\n`;\n  report += `   Monthly Expense: ฿${item.total_expense.toLocaleString()}\\n`;\n  report += `   Total Debt: ฿${item.total_debt.toLocaleString()}\\n`;\n  report += `   Debt-to-Expense Ratio: ${item.debt_to_expense_pct}%\\n\\n`;\n});\n\nreport += '\\n## Bottom 5 Provinces with Lowest Debt Burden\\n\\n';\nbottom5.forEach((item, idx) => {\n  report += `${idx + 1}. ${item.province} (${item.year}) - ${item.soc_eco2}\\n`;\n  report += `   Monthly Expense: ฿${item.total_expense.toLocaleString()}\\n`;\n  report += `   Total Debt: ฿${item.total_debt.toLocaleString()}\\n`;\n  report += `   Debt-to-Expense Ratio: ${item.debt_to_expense_pct}%\\n\\n`;\n});\n\nreport += `\\n---\\nTotal Records Analyzed: ${analyzed.length}\\n`;\nreport += `Report Generated: ${new Date().toLocaleString('th-TH')}\\n`;\n\nreturn [\n  {\n    json: {\n      report,\n      top5,\n      bottom5,\n      all_data: analyzed\n    }\n  }\n];"
+      },
+      "id": "a293c444-bec8-45e6-83d7-882a8401b764",
+      "name": "Analyze Debt-to-Expense Ratio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "t.samanchuen@gmail.com",
+        "toEmail": "mirf.mv@gmail.com",
+        "subject": "Report",
+        "emailFormat": "text",
+        "text": "={{ $json.report }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        304
+      ],
+      "id": "008cad01-e400-4408-ae19-a2f151cb49c3",
+      "name": "Send an Email",
+      "webhookId": "b21dd7f4-f110-4b3a-8c08-5bf6a9e72e2a",
+      "credentials": {
+        "smtp": {
+          "id": "sC3lg41W9Vf4AU9G",
+          "name": "t.samanchuen@gmail SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Fetch Household Expenses",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Household Debt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Household Expenses": {
+      "main": [
+        [
+          {
+            "node": "Filter Expenses (รวมทั้งสิ้น)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Expenses (รวมทั้งสิ้น)": {
+      "main": [
+        [
+          {
+            "node": "Merge by Province + Year + Socio-Economic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge by Province + Year + Socio-Economic": {
+      "main": [
+        [
+          {
+            "node": "Analyze Debt-to-Expense Ratio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Household Debt": {
+      "main": [
+        [
+          {
+            "node": "Filter Debt (หนี้รวม)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Debt (หนี้รวม)": {
+      "main": [
+        [
+          {
+            "node": "Merge by Province + Year + Socio-Economic",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Analyze Debt-to-Expense Ratio": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "19070edb-2e8e-4817-9448-d7a8f6b630e7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c064c168fd7bd400088e18637bfe84846541c53d2c31da7470712b2bb404eed"
+  },
+  "id": "m4K5qKU7FqkS6Erx",
+  "tags": []
+}

@@ -1,0 +1,181 @@
+{
+  "name": "M6_Form Data Encryption & Decryption",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              },
+              "id": "97aba1a6-d272-4f1e-9d13-c5507e81c8cd"
+            },
+            {
+              "leftValue": "={{ $('Edit Fields').item.json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              },
+              "id": "37e1f6f1-4009-4d5f-a21a-b53d2ea4309d"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4f22ed7b-95ab-4ab0-89fd-d04b6cc413cf",
+      "name": "ตรวจสอบข้อมูลครบถ้วน",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        272
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        288,
+        272
+      ],
+      "id": "3020d446-3287-4679-92ec-ebc8bf4fa925",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e603da8f-ee5e-4025-b4a2-9003e06b134a",
+              "name": "name",
+              "value": "ake",
+              "type": "string"
+            },
+            {
+              "id": "beb5a298-cf43-487c-9f32-6742162addcf",
+              "name": "email",
+              "value": "ake@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "676c5c7f-4929-4e82-8579-59e5c79bc7f0",
+              "name": "id_card",
+              "value": "0814414906",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        272
+      ],
+      "id": "f0c8bb62-19f8-4788-95e4-9f49939fb138",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const crypto = require('crypto');\nconst SECRET_KEY = $vars.ENCRYPTION_KEY ; // 32-byte key จาก n8n Environment\nconst IV = crypto.randomBytes(16);\nfunction encrypt(text) {\n  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(SECRET_KEY), IV);\n  let encrypted = cipher.update(text, 'utf8', 'hex');\n  encrypted += cipher.final('hex');\n  return IV.toString('hex') + ':' + encrypted;\n}\nreturn {\n  json: {\n    name: $json.name,           // เก็บชื่อตามปกติ\n    id_card_encrypted: encrypt($json.id_card),  // เข้ารหัสเลขบัตร\n    email_hash: crypto.createHash('sha256').update($json.email).digest('hex'),\n  }\n};"
+      },
+      "id": "24ac1181-1984-4711-99ca-548e1854ce12",
+      "name": "Encrypt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const crypto = require('crypto');\nconst SECRET_KEY = $vars.ENCRYPTION_KEY; // ต้องเป็น key เดียวกับตอน encrypt\nfunction decrypt(encryptedText) {\n  if (!encryptedText) {\n    return null;\n  }\n  const parts = encryptedText.split(':');\n  if (parts.length !== 2) {\n    throw new Error('Invalid encrypted format. Expected iv:encryptedText');\n  }\n  const iv = Buffer.from(parts[0], 'hex');\n  const encrypted = parts[1];\n  const decipher = crypto.createDecipheriv(\n    'aes-256-cbc',\n    Buffer.from(SECRET_KEY),\n    iv\n  );\n\n  let decrypted = decipher.update(encrypted, 'hex', 'utf8');\n  decrypted += decipher.final('utf8');\n\n  return decrypted;\n}\n\nreturn {\n  json: {\n    name: $json.name,\n    id_card_encrypted: $json.id_card_encrypted,\n    id_card_decrypted: decrypt($json.id_card_encrypted),\n    email_hash: $json.email_hash,\n  }\n};"
+      },
+      "id": "d475507b-24d0-4f6f-b896-356d2dc48841",
+      "name": "Decrypt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        256
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "ตรวจสอบข้อมูลครบถ้วน": {
+      "main": [
+        [
+          {
+            "node": "Decrypt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Encrypt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encrypt": {
+      "main": [
+        [
+          {
+            "node": "ตรวจสอบข้อมูลครบถ้วน",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4c64eb15-f8db-482b-a6f5-785ff1ec66a8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c064c168fd7bd400088e18637bfe84846541c53d2c31da7470712b2bb404eed"
+  },
+  "id": "Vh0JY1pDS3ZvF7sK",
+  "tags": []
+}

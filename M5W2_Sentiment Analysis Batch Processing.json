@@ -1,0 +1,524 @@
+{
+  "name": "M5W2_Sentiment Analysis Batch Processing",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6d3729bd-96c4-438a-8476-6ce30914f978",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg",
+          "mode": "list",
+          "cachedResultName": "SentimentDummy",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "ddfc1e4c-83cd-4dba-ad60-3537ab33de15",
+      "name": "Read Feedback Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        464,
+        496
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "vqfRUCzRjoWLgQUA",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all analyzed items\nconst items = $input.all();\n\nlet positiveCount = 0;\nlet negativeCount = 0;\nlet totalScore = 0;\n\nfor (const item of items) {\n  const sentiment = item.json.sentiment?.toLowerCase();\n  const score = item.json.score || 0;\n  \n  if (sentiment === 'positive') {\n    positiveCount++;\n  } else if (sentiment === 'negative') {\n    negativeCount++;\n  }\n  \n  totalScore += score;\n}\n\nconst total = items.length;\nconst positivePercent = total > 0 ? (positiveCount / total * 100).toFixed(2) : 0;\nconst negativePercent = total > 0 ? (negativeCount / total * 100).toFixed(2) : 0;\nconst averageScore = total > 0 ? (totalScore / total).toFixed(2) : 0;\n\nreturn [\n  {\n    json: {\n      total_items: total,\n      positive_count: positiveCount,\n      negative_count: negativeCount,\n      positive_percent: positivePercent + '%',\n      negative_percent: negativePercent + '%',\n      average_score: averageScore,\n      summary_data: items.map(item => ({\n        row_number: item.json.row_number,\n        feedback: item.json.feedback,\n        sentiment: item.json.sentiment,\n        score: item.json.score\n      }))\n    }\n  }\n];"
+      },
+      "id": "560c1487-a1dc-44cd-b834-1a9946f21ea3",
+      "name": "Calculate Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg",
+          "mode": "list",
+          "cachedResultName": "SentimentDummy",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1590533952,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg/edit#gid=1590533952"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ $today }}",
+            "positive": "={{ $json.positive_percent }}",
+            "negative": "={{ $json.negative_percent }}",
+            "average": "={{ $json.average_score }}",
+            "total": "={{ $json.total_items }}",
+            "positive count": "={{ $json.positive_count }}",
+            "negative count": "={{ $json.negative_count }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "positive",
+              "displayName": "positive",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "negative",
+              "displayName": "negative",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "average",
+              "displayName": "average",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "total",
+              "displayName": "total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "positive count",
+              "displayName": "positive count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "negative count",
+              "displayName": "negative count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f4bd8f3a-4190-437a-abef-6c7ce0d0056c",
+      "name": "Write Summary Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "vqfRUCzRjoWLgQUA",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg",
+          "mode": "list",
+          "cachedResultName": "SentimentDummy",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AK2skLBUv9fnAxyHCQYSXifeu_68psWV-fxtcuOdJtg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Process in Batches').item.json.id }}",
+            "sentiment": "={{ $json.output.sentiment }}",
+            "score": "={{ $json.output.score }}",
+            "text": "={{ $json.output.text }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "service_point",
+              "displayName": "service_point",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "feedback",
+              "displayName": "feedback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rating",
+              "displayName": "rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9dde3ef5-ffb5-4ada-b1f6-66ecf90e235b",
+      "name": "Write Analysis Results",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        512
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "vqfRUCzRjoWLgQUA",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "2356611a-1378-4b59-b34f-73aef570df96",
+      "name": "Process in Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        688,
+        496
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1536,
+        672
+      ],
+      "id": "02d906a7-eaf1-40f5-b625-a1a6cbdf3dbb",
+      "name": "Wait",
+      "webhookId": "2465e517-38a0-417c-a870-1af582615396"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"text\" : \"อาหารอร่อยดี\",\n  \"sentiment\":\"positive\",\n  \"score\":0.85\n}"
+      },
+      "id": "fb4c065b-9e1f-432b-850f-dad919892774",
+      "name": "Sentiment Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1088,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-32b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        944,
+        688
+      ],
+      "id": "948f50ad-b657-46dc-9947-3839ca9da492",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "HgH4TWsvBrtZiqjE",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the sentiment of this feedback and provide a score from 0 to 1:\n\n{{ $json.feedback }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a sentiment analysis expert. Analyze customer feedback and classify it as \"positive\", \"negative\", or \"neutral\". Provide a score from 0 (most negative) to 1 (most positive). Return your response in the exact JSON format specified."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        944,
+        512
+      ],
+      "id": "5306a893-496e-4d1e-ab7d-fccfc74844ee",
+      "name": "Basic LLM Chain"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Feedback Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Feedback Data": {
+      "main": [
+        [
+          {
+            "node": "Process in Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Statistics": {
+      "main": [
+        [
+          {
+            "node": "Write Summary Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Analysis Results": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process in Batches": {
+      "main": [
+        [
+          {
+            "node": "Calculate Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Process in Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sentiment Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Write Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "51515acc-8598-4a0e-9ac2-bcaaa8704a3b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c064c168fd7bd400088e18637bfe84846541c53d2c31da7470712b2bb404eed"
+  },
+  "id": "S2M8LuGBKKuc5qD2",
+  "tags": []
+}

@@ -1,0 +1,352 @@
+{
+  "name": "M4W1_NSO Population Data Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "64a40a0b-3c58-41b9-bf18-605cfc89a7ee",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://catalog.nso.go.th/api/3/action/datastore_search?resource_id=57ff7cd9-27e3-4dc5-b6ad-e8280ab18a05&limit=2000&filters={\"year\":2553}",
+        "options": {}
+      },
+      "id": "9b18bdf3-7f09-4953-b115-4a03f7c6b489",
+      "name": "Fetch NSO Population Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "records",
+              "value": "={{ $json.result.records }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f3cddd66-c4a8-4ed6-a174-8c44a867c799",
+      "name": "Extract Records Array",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "records",
+        "options": {}
+      },
+      "id": "1a64cc60-b425-4bb2-a44a-a291f6c59f51",
+      "name": "Split Records",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        912,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.area }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "รวม"
+            },
+            {
+              "id": "2",
+              "leftValue": "={{ $json.sex }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "รวม"
+            },
+            {
+              "id": "3",
+              "leftValue": "={{ $json.age_group }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "รวม"
+            },
+            {
+              "id": "9fc47a83-b249-4cb2-9fe3-2df8e7c746e6",
+              "leftValue": "={{ $json.province }}",
+              "rightValue": "รวม",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f9952ab7-8fa3-4b07-ad36-0bc05a843b92",
+      "name": "Filter Aggregated Data",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1136,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// ดึงค่าประชากรจาก field \"value\"\nconst populations = items\n  .map(item => Number(item.json.value))\n  .filter(val => !isNaN(val));\n\nconst total = populations.reduce((sum, val) => sum + val, 0);\nconst avg = populations.length > 0 ? total / populations.length : 0;\nconst max = populations.length > 0 ? Math.max(...populations) : 0;\nconst min = populations.length > 0 ? Math.min(...populations) : 0;\n\n// เรียงจากประชากรมากไปน้อย\nconst sorted = [...items].sort((a, b) => Number(b.json.value) - Number(a.json.value));\n\nconst top5 = sorted.slice(0, 5);\nconst bottom5 = sorted.slice(-5).reverse();\n\nreturn [{\n  json: {\n    statistics: {\n      total: total,\n      average: avg,\n      max: max,\n      min: min,\n      count: populations.length\n    },\n    top5: top5.map(item => ({\n      year: item.json.year,\n      region: item.json.region,\n      province: item.json.province,\n      population: item.json.value,\n      unit: item.json.unit\n    })),\n    bottom5: bottom5.map(item => ({\n      year: item.json.year,\n      region: item.json.region,\n      province: item.json.province,\n      population: item.json.value,\n      unit: item.json.unit\n    })),\n    allProvinces: sorted.map(item => ({\n      year: item.json.year,\n      region: item.json.region,\n      province: item.json.province,\n      population: item.json.value,\n      unit: item.json.unit\n    }))\n  }\n}];"
+      },
+      "id": "7e8ad7e0-e74f-4e7e-aa9e-f2583a666fd3",
+      "name": "Calculate Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst excelData = [];\n\nexcelData.push({\n  json: {\n    sheet: 'สถิติรวม',\n    metric: 'รวมประชากรทั้งประเทศ',\n    value: data.statistics.total.toLocaleString('th-TH')\n  }\n});\n\nexcelData.push({\n  json: {\n    sheet: 'สถิติรวม',\n    metric: 'ค่าเฉลี่ย',\n    value: Math.round(data.statistics.average).toLocaleString('th-TH')\n  }\n});\n\nexcelData.push({\n  json: {\n    sheet: 'สถิติรวม',\n    metric: 'สูงสุด',\n    value: data.statistics.max.toLocaleString('th-TH')\n  }\n});\n\nexcelData.push({\n  json: {\n    sheet: 'สถิติรวม',\n    metric: 'ต่ำสุด',\n    value: data.statistics.min.toLocaleString('th-TH')\n  }\n});\n\nexcelData.push({\n  json: {\n    sheet: 'สถิติรวม',\n    metric: 'จำนวนจังหวัด',\n    value: data.statistics.count\n  }\n});\n\ndata.top5.forEach((item, index) => {\n  excelData.push({\n    json: {\n      sheet: 'TOP 5',\n      rank: index + 1,\n      province: item.province,\n      population: item.population.toLocaleString('th-TH')\n    }\n  });\n});\n\ndata.bottom5.forEach((item, index) => {\n  excelData.push({\n    json: {\n      sheet: 'BOTTOM 5',\n      rank: index + 1,\n      province: item.province,\n      population: item.population.toLocaleString('th-TH')\n    }\n  });\n});\n\ndata.allProvinces.forEach((item, index) => {\n  excelData.push({\n    json: {\n      sheet: 'ทุกจังหวัด',\n      rank: index + 1,\n      province: item.province,\n      population: item.population.toLocaleString('th-TH')\n    }\n  });\n});\n\nreturn excelData;"
+      },
+      "id": "8bc7b3d6-77fa-4d9c-8ec0-63d71698ae0c",
+      "name": "Prepare Excel Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "fileName": "={{ \"NSO_Population_Report_\" + $now.toFormat(\"yyyy-MM-dd\") + \".xlsx\" }}",
+          "sheetName": "Population Data"
+        }
+      },
+      "id": "a034dbf4-f88c-4350-a4ee-0b3773c8eaa5",
+      "name": "Convert to Excel",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "stats",
+              "value": "={{ $(\"Calculate Statistics\").item.json.statistics }}",
+              "type": "object"
+            },
+            {
+              "id": "2",
+              "name": "top5",
+              "value": "={{ $(\"Calculate Statistics\").item.json.top5 }}",
+              "type": "array"
+            },
+            {
+              "id": "3",
+              "name": "bottom5",
+              "value": "={{ $(\"Calculate Statistics\").item.json.bottom5 }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c5c87407-371b-4c69-a1fe-f038e273dcb3",
+      "name": "Prepare Email Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        624
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "fromEmail": "t.samanchuen@gmail.com",
+        "toEmail": "mirf.mv@gmail.com",
+        "subject": "Statistic",
+        "emailFormat": "text",
+        "text": "=total population: {{ $json.stats.total }}\naverage:{{ $json.stats.average }}\nmax:{{ $json.stats.max }}\nmin:{{ $json.stats.min }}",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1168,
+        736
+      ],
+      "id": "6049193f-0ffd-4ba8-a0ee-177651adeb38",
+      "name": "Send an Email",
+      "webhookId": "60143a61-6864-47b0-8aa5-41a49dd3f57d",
+      "credentials": {
+        "smtp": {
+          "id": "sC3lg41W9Vf4AU9G",
+          "name": "t.samanchuen@gmail SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch NSO Population Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch NSO Population Data": {
+      "main": [
+        [
+          {
+            "node": "Extract Records Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Records Array": {
+      "main": [
+        [
+          {
+            "node": "Split Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Records": {
+      "main": [
+        [
+          {
+            "node": "Filter Aggregated Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Aggregated Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Statistics": {
+      "main": [
+        [
+          {
+            "node": "Prepare Excel Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Excel Data": {
+      "main": [
+        [
+          {
+            "node": "Convert to Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to Excel": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Summary": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "661e2c9f-e282-454c-81e0-2e61c4195138",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8c064c168fd7bd400088e18637bfe84846541c53d2c31da7470712b2bb404eed"
+  },
+  "id": "lvxee3CJevzOdQNJ",
+  "tags": []
+}
