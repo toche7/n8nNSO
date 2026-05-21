@@ -1,0 +1,172 @@
+{
+  "name": "M3W1_Daily Weather Email Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "bcb50d3e-670c-441e-b2cd-525fd3d10069",
+      "name": "Every Day at 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -96,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "13.75"
+            },
+            {
+              "name": "longitude",
+              "value": "100.52"
+            },
+            {
+              "name": "daily",
+              "value": "temperature_2m_max,temperature_2m_min"
+            },
+            {
+              "name": "timezone",
+              "value": "Asia/Bangkok"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7d3cc071-d060-40d2-836a-0512e9f1b043",
+      "name": "Fetch Weather Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        80,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "date",
+              "value": "={{ $json.daily.time[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "maxTemp",
+              "value": "={{ $json.daily.temperature_2m_max[0] }}",
+              "type": "number"
+            },
+            {
+              "id": "3",
+              "name": "minTemp",
+              "value": "={{ $json.daily.temperature_2m_min[0] }}",
+              "type": "number"
+            },
+            {
+              "id": "4",
+              "name": "avgTemp",
+              "value": "={{ ($json.daily.temperature_2m_max[0] + $json.daily.temperature_2m_min[0]) / 2 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "417f859d-a3c8-4ccb-8d47-ce9943be5230",
+      "name": "Calculate Average Temperature",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "tochehaha@gmail.com",
+        "subject": "Weather Report",
+        "emailType": "text",
+        "message": "=ข้อมูลวันที่ {{ $json.date }}\nอุณหภูมิสูงสุด: {{ $json.maxTemp }}\nอุณหภูมิต่ำสุด: {{ $json.minTemp }}\nอุณหภูมิเฉลี่ย: {{ $json.avgTemp }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        16
+      ],
+      "id": "366eccc0-a755-463c-9635-a9bcbd25a60c",
+      "name": "Send a message",
+      "webhookId": "67e58520-5e7b-4a14-8131-bdcb603c3459",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JAKTdugGVKAKG5W2",
+          "name": "Gmail akesamachuen@gmail.com"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Day at 07:00": {
+      "main": [
+        [
+          {
+            "node": "Fetch Weather Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Weather Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Average Temperature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Average Temperature": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8ec6ef7f-32e0-4d78-b85b-87c6f89b67ba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "da2fa3cae48bd9972fb101caeba092033d342f990c4bf94a3c35077cf71dfe60"
+  },
+  "id": "ExtE4FiV51lKcKiO",
+  "tags": []
+}
