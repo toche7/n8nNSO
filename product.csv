@@ -1,0 +1,21 @@
+﻿product_id,product_name,category,price_thb,stock
+P001,Wireless Mouse,Accessories,450,80
+P002,Silent Wireless Mouse,Accessories,650,45
+P003,Ergonomic Mouse,Accessories,950,30
+P004,Mechanical Keyboard,Accessories,1890,25
+P005,Wireless Keyboard,Accessories,890,40
+P006,USB Webcam,Accessories,1290,20
+P007,USB Headset,Audio,790,55
+P008,Bluetooth Headphones,Audio,1590,35
+P009,Portable Bluetooth Speaker,Audio,990,28
+P010,USB Microphone,Audio,1490,18
+P011,24-inch Monitor,Displays,3990,15
+P012,27-inch Monitor,Displays,5990,12
+P013,USB-C Hub,Connectivity,1190,50
+P014,HDMI Cable 2m,Connectivity,250,100
+P015,USB-C Cable 1m,Connectivity,190,120
+P016,Portable SSD 1TB,Storage,2990,22
+P017,USB Flash Drive 64GB,Storage,290,75
+P018,Laptop Stand,Office,690,38
+P019,Laptop Backpack,Office,1290,0
+P020,Wireless Presenter,Office,590,32
