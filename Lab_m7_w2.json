@@ -1,0 +1,183 @@
+{
+  "name": "Lab_m7_w2",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "70904c64-1ded-4b67-bf17-1da9c4b55b4c",
+      "name": "When chat message received",
+      "webhookId": "910227b6-8b6a-4d25-9456-db3ac90eb06a"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful product support assistant.\nUse the product catalog tool to retrieve current prices and product details.\nUse the calculator tool for totals and comparisons; never guess values.\nIf a product is missing or data is incomplete, say so clearly.\nAnswer concisely and cite the product record used."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "1089a9cf-b017-444a-89a7-23f3746773ac",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-4-argon",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        144,
+        240
+      ],
+      "id": "c322b2b0-c160-41fc-9d45-cd911ab0c71e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        272,
+        240
+      ],
+      "id": "df9eece0-a816-4082-8344-c00e585e18de",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get row(s) in sheet in Google Sheets\nข้อมูลใน Sheet เป็น Product Catalog\nมีรหัสสินค้า ชื่อ หมวด ราคา และจำนวนคงเหลือ",
+        "documentId": {
+          "__rl": true,
+          "value": "1_WNJc8gFAB7hcjrw1shUqL5DkEZcALNK7clZzxGmXwg",
+          "mode": "list",
+          "cachedResultName": "testN8N",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_WNJc8gFAB7hcjrw1shUqL5DkEZcALNK7clZzxGmXwg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 391435496,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_WNJc8gFAB7hcjrw1shUqL5DkEZcALNK7clZzxGmXwg/edit#gid=391435496"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        240
+      ],
+      "id": "394ffc0f-d9d5-4199-83c0-2a5550814d75",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hbKeS9coeDOAuHbN",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        512,
+        240
+      ],
+      "id": "9fc6d8c8-c353-47d0-ae17-eb25de778e88",
+      "name": "Calculator"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2edb850c-8c6e-4c31-b80c-bee2a5e1e03a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e1fed2bf2733673e7ca77b4dc79c2ee2d0b7d4791daad49a708144f1b5e04f78"
+  },
+  "nodeGroups": [],
+  "id": "BCfcGmYxHNG408n8",
+  "tags": []
+}

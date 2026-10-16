@@ -1,0 +1,319 @@
+{
+  "name": "lab4_R1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "0744cd61-b5c9-4bca-b862-cd8b079c1563",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.reviewmsg }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "classify the given text to positive, negative and neutral.\noutput example format:\n{\n  \"sentiment\": \"positive\" | \"neutral\" | \"negative\",   \n   \"score\": 1-10,\n  \"summary\": \"สรุปสั้นๆ\",\n  \"category\": \"หมวดหมู􀀄ป􀀅ญหา\"\n}\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        464,
+        16
+      ],
+      "id": "3f868412-afba-42bd-8f75-b37363d8eceb",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        448,
+        208
+      ],
+      "id": "33192b4b-8cd2-4715-93a2-95a60d8e7d60",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"sentiment\": {\n      \"type\": \"string\",\n      \"enum\": [\"Positive\", \"Negative\", \"Neutral\"]\n    },\n    \"score\": {\n      \"type\": \"integer\",\n      \"minimum\": 1,\n      \"maximum\": 10\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"สรุปสั้นๆ\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\"อาหาร\", \"พนักงาน\", \"บริการ\", \"รสชาติ\"]\n    }\n  },\n  \"required\": [\"sentiment\", \"score\", \"summary\", \"category\"],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        208
+      ],
+      "id": "84317eac-428c-4e3e-9851-174e4785327a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "9e57sBSArlqS9lPs",
+          "mode": "list",
+          "cachedResultName": "sentiment",
+          "cachedResultUrl": "/projects/05StzuqDBHQRtelu/datatables/9e57sBSArlqS9lPs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sentiment": "={{ $json.output.sentiment }}",
+            "summary": "={{ $json.output.summary }}",
+            "category": "={{ $json.output.category }}",
+            "msg": "={{ $('Get row(s) in sheet').item.json.reviewmsg }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "msg",
+              "displayName": "msg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        16
+      ],
+      "id": "e7571fb0-6923-4007-854e-9e48cc95e415",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17jtfDQ3-B66CZJugoaXRjnI-n-x0_SUVmCu1lLtswPU",
+          "mode": "list",
+          "cachedResultName": "mai1Demon8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17jtfDQ3-B66CZJugoaXRjnI-n-x0_SUVmCu1lLtswPU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1241974627,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17jtfDQ3-B66CZJugoaXRjnI-n-x0_SUVmCu1lLtswPU/edit#gid=1241974627"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        32,
+        0
+      ],
+      "id": "17571260-576a-404b-8e3d-13fad5c199fd",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hbKeS9coeDOAuHbN",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "d8ad897d-f1e8-4d35-b8b8-235f04a6828a",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        224
+      ],
+      "id": "ced798c5-514d-4cd1-b326-57fdc1213847",
+      "name": "Wait",
+      "webhookId": "8e72e681-c75c-4d38-8682-2e6333e9104f"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5494999f-8f46-42d4-ac41-4e017e7fe434",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e1fed2bf2733673e7ca77b4dc79c2ee2d0b7d4791daad49a708144f1b5e04f78"
+  },
+  "nodeGroups": [],
+  "id": "fTwo3f7NCBsKEweQ",
+  "tags": []
+}
